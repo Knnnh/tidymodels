@@ -1,7 +1,6 @@
 ---
 title: "Tidy Models Workshop Part One"
-author: "Jose Sotelo"
-date: "8/16/2022"
+date: "4/16/2024"
 output: html_document
 ---
 
@@ -18,7 +17,7 @@ knitr::opts_chunk$set(echo = TRUE,warning = F,message = F)
 **The goal of today is to begin to understand the basics of the R package Tidymodels.**
 
 
-There is a lot of possible information that can be provided on this topic and this workshop isn't meant to exhaust those resources. If you have questions throughout the workshop you can type them in the chat or I will be happy to meet with you afterwords. I am also willing to talk about the subject either through  email josesotelo2023@u.northwestern.edu or if you would like some help using Tidymodels for your own data, we do free [consults](https://app.smartsheet.com/b/form/2f2ec327e6164f83b588b7bbe2e2b56f) for all of your data science needs!
+There is a lot of possible information that can be provided on this topic and this workshop isn't meant to exhaust those resources. If you have questions throughout the workshop you can type them in the chat. You can also always submit a [free consult request with Research Computing and Data Services](https://services.northwestern.edu/TDClient/30/Portal/Requests/ServiceDet?ID=93).
 
 
 <br><br>
@@ -64,18 +63,6 @@ There is a lot of possible information that can be provided on this topic and th
 
 The tidymodels framework is a collection of packages for modeling and machine learning using tidyverse principles.
 
-
-**Yes we are doing machine learning!**
-
-Tidy Principals:
-
-Reuse existing data structures.
-
-Compose simple functions with the pipe.
-
-Embrace functional programming.
-
-Design for humans.
 
 **We have various workshops on different aspects of the tidyverse like data cleaning and manipulation**
 
@@ -133,11 +120,11 @@ Within supervised models, there are two main sub-categories:
 **Regression** predicts a numeric outcome.
 
 
-Age is an example of this type of out
+Age is an example of this type of outcome.
 
 **Classification** predicts an outcome that is an ordered or unordered set of qualitative values.
 
-Model of a car would be an example of this type of outcome  
+Model of a car would be an example of this type of outcome.
 
 <br><br>
 
@@ -152,7 +139,7 @@ Model of a car would be an example of this type of outcome
 
 <br><br>
 
-There are many ways to go about the process of creating a model but I will be showing you the organization that I am most familiar with. This is definitely not the only way to do it though! One good thing about Tidymodels is that the process is flexible in certain ways. 
+There are many ways to go about the process of creating a model. I will be showing you one of them. This is definitely not the only way to do it though! One good thing about Tidymodels is that the process is flexible in certain ways. 
 
 
 We will go over a couple of examples of this but the overall process looks like the chart bellow
@@ -199,7 +186,7 @@ The age of an abalone is typically determined by cutting the shell open and coun
 
 
 
-The full abalone data set is located in the `\data` subdirectory. Read it into *R* as a tibble. Take a moment to read through the codebook (`abalone_codebook.txt`) and familiarize yourself with the variable definitions.
+The full abalone data set is located in the `\data` subdirectory. Read it into *R* as a tibble. You can read the codebook as well (`abalone_codebook.txt`).
 
 <br><br>
 
@@ -236,9 +223,9 @@ ggplot(abalone,aes(x=age))+
 
 <br><br>
 
-Here we split our data so that we can train our model then later see how well our model can fit the rest of our data or our testing set. 
+Here we split our data so that we can train our model and later see how well our model can fit the rest of our data or our testing set. 
 
-Here we choose to stratify our split. This impacts how we randomly sample our data into either our training or testing data. If not stratified then sets are 100% randomly sampled. if we choose to stratify our data is split into quartiles (can be changed) and then randomly sampled within each of those quartiles.
+Here we choose to stratify our split. This impacts how we randomly sample our data into either our training or testing data. If not stratified then sets are 100% randomly sampled. If we choose to stratify our data is split into quartiles (can be changed) and then randomly sampled within each of those quartiles.
 
 This can help with skewness in our outcome variable. One can imagine that if our age is highly skewed and a larger percentage of our training data is from the skewed side of the data, then our model might not be good at predicting data points that are at the other side of the data.
 
@@ -306,7 +293,7 @@ Make different testing and training data with different proportions and stratifi
 
 How might this influence our models later?
 
-Make sure to remove the eval=FALSE from the code below
+Make sure to remove the eval=FALSE from the two code chunks below:
 
 ```{r,eval=FALSE}
 
@@ -339,7 +326,7 @@ ggplot(abalone_test_2,aes(x=age))+
 
 <br><br>
 
-Let's begin to construct our recipe for our model. First lets make a recipe with age as our outcome variable using all the other variables in our data. Because we constructed age using ring and there will be a highly correlated relationship we want to remove that variable from our recipe.
+Let's begin to construct a recipe for our model. First lets make a recipe with age as our outcome variable using all the other variables in our data. Because we constructed age using ring and there will be a highly correlated relationship we want to remove that variable from our recipe.
 
 <br><br>
 
@@ -367,7 +354,7 @@ abalone_recipe<-recipe(age ~ .,data = abalone_train)%>%
 
 <br><br>
 
-Next we might want to add interactions of some variable or normalize (center and scale) our data. We can do this with the code bellow. Note that because we created multiple dummy variables for `type` we will want to add the `starts_with()` function to include all those variables in our interaction
+Next we might want to add interactions of some variable or normalize (center and scale) our data. We can do this with the code below. Note that because we created multiple dummy variables for `type` we will want to add the `starts_with()` function to include all those variables in our interaction
 
 <br><br>
 
@@ -376,9 +363,7 @@ Next we might want to add interactions of some variable or normalize (center and
 abalone_recipe<-recipe(age ~ .,data = abalone_train)%>%
   step_rm("rings")%>%
   step_dummy(type)%>%
-  step_interact(~starts_with("type"):shucked_weight+
-                               longest_shell:diameter+
-                               shucked_weight:shell_weight)%>%
+  step_interact(~longest_shell:diameter + shucked_weight:shell_weight + starts_with("type"):shucked_weight) %>% 
   step_normalize(all_predictors())
 
 
@@ -411,7 +396,7 @@ prep(abalone_recipe, training = abalone_train)%>%
 
 <br><br>
 
-The scope of this workshop is not to chose which model might be best for a certain data set so for our regression data we will choose four simple models (Regression, Random forest, Lasso, Ridge). But there are many models (over 300) to choose from and they can be found [here](https://www.tidymodels.org/find/parsnip/)
+The scope of this workshop is not to chose which model might be best for a certain data set. For our regression data we will choose four relatively simple models (Regression, Random forest, Lasso, Ridge). But there are many models (over 300) to choose from and they can be found [here](https://www.tidymodels.org/find/parsnip/)
 
 <br><br>
 
