@@ -19,6 +19,8 @@ knitr::opts_chunk$set(echo = TRUE,warning = F,message = F)
 
 There is a lot of possible information that can be provided on this topic and this workshop isn't meant to exhaust those resources. If you have questions throughout the workshop you can type them in the chat. You can also always submit a [free consult request with Research Computing and Data Services](https://services.northwestern.edu/TDClient/30/Portal/Requests/ServiceDet?ID=93).
 
+Finally, this workshop doesn't provide a comprehensive or detailed introduction to predictive modeling.
+
 
 <br><br>
 
@@ -81,21 +83,16 @@ What packages come with tidymodels?
 
 <br><br>
 
-#### **Descriptive Models**
-
-The purpose of a descriptive model is to describe or illustrate characteristics of some data. The analysis might have no other purpose than to visually emphasize some trend or artifact in the data.
-
 
 #### **Inferential Models**
 
 
-The goal of an inferential model is to produce a decision for a research question or to explore a specific hypothesis, similar to how statistical tests are used. An inferential model starts with some predefined conjecture or idea about a population, and produces a statistical conclusion such as an interval estimate or the rejection of a hypothesis.
-
+Inferential models describe the relationship between a predictor (or "independent variable") and an outcome (or "dependent variable"). For example, a researcher might use an inferential model to test a specific hypothesis about how education relates to income. The researcher would probably be interested in the coefficient, standard error, and p-value.
 
 #### **Predictive Model**
 
+In contrast, the focus on predictive models is on accuracy. There is less emphasis on understanding how the predictors relate to the outcome. More emphasis is placed on how the model predicts new data.
 
-Sometimes data are modeled to produce the most accurate prediction possible for new data. Here, the primary goal is that the predicted values have the highest possible fidelity to the true value of the new data.
 
 **Predictive models are what we will be focusing on today!**
 
@@ -105,15 +102,15 @@ Sometimes data are modeled to produce the most accurate prediction possible for 
 
 <br><br>
 
-**Unsupervised models** are those that learn patterns, clusters, or other characteristics of the data but lack an outcome.
+**Unsupervised algorithms** are those that learn patterns, clusters, or other characteristics of the data but lack an outcome.
 
 
-**Supervised models** are those that have an outcome variable. Linear regression, neural networks, and numerous other methodologies fall into this category.
+**Supervised algorithms** are those that have an outcome variable. Linear regression and numerous other algorithms fall into this category.
 
 
 <br><br>
 
-Within supervised models, there are two main sub-categories:
+Within supervised algorithms, there are two main sub-categories:
 
 <br><br>
 
@@ -227,7 +224,7 @@ Here we split our data so that we can train our model and later see how well our
 
 Here we choose to stratify our split. This impacts how we randomly sample our data into either our training or testing data. If not stratified then sets are 100% randomly sampled. If we choose to stratify our data is split into quartiles (can be changed) and then randomly sampled within each of those quartiles.
 
-This can help with skewness in our outcome variable. One can imagine that if our age is highly skewed and a larger percentage of our training data is from the skewed side of the data, then our model might not be good at predicting data points that are at the other side of the data.
+This can help with skewness in our outcome variable. One can imagine that if our age is highly skewed and a larger percentage of our training comes from one side of the data, then our model might not be good at predicting data points that are on the other side of the data.
 
 <br><br>
 
@@ -285,7 +282,7 @@ plot_grid(strat_plot,nostrat_plot,labels = c("Stratified", "Not Stratified"))
 
 <br><br>
 
-**Now you try!**
+**Now you try! Exercise 1**
 <br><br>
 
 Make different testing and training data with different proportions and stratification to see if you can get any funky distribution.
@@ -396,7 +393,7 @@ prep(abalone_recipe, training = abalone_train)%>%
 
 <br><br>
 
-The scope of this workshop is not to chose which model might be best for a certain data set. For our regression data we will choose four relatively simple models (Regression, Random forest, Lasso, Ridge). But there are many models (over 300) to choose from and they can be found [here](https://www.tidymodels.org/find/parsnip/)
+The scope of this workshop is not to chose which algorithm might be best for a certain data set. For our regression data we will choose four relatively simple algorithms (Regression, Random forest, Lasso, Ridge). But there are many more (over 300) to choose from and they can be found [here](https://www.tidymodels.org/find/parsnip/)
 
 <br><br>
 
@@ -452,7 +449,7 @@ predict(regression_fit, abalone_prediction)
 
 
 
-## **Now it's your Turn!**
+## **Now it's your Turn! Exercise 2**
 
 <br><br>
 
@@ -462,7 +459,7 @@ It is okay if you get errors in predicting because you might be choosing values 
 
 **Hints**
 
-Look at the skim of the data to look for possible values.
+Look at the data to look for possible values.
 
 For `type` the only possible values are M,F, or I.
 
@@ -508,15 +505,17 @@ regression_assesment
 
 ```
 
+`rmse` stands for root mean squared error (square root of the mean squared error, which is the average of the squared difference between the actual and predicted values), `rsq` for R-squared (also called coefficient of determination, which is the proportion of the variance in the outcome explained by the model), and `mae` for mean absolute error (average of the absolute difference between the actual and the predicted values). Lower values of rmse and mae are better, while a higher value of rsq is better. rmse gives more weight to large deviations than mae and a model with good mae can have some very large errors. One advantage of rmse and mae is that it is measured in the same units than the outcome. You can find more information [here](https://medium.com/analytics-vidhya/mae-mse-rmse-coefficient-of-determination-adjusted-r-squared-which-metric-is-better-cd0326a5697e) and [here](https://datascience.stackexchange.com/questions/42760/mad-vs-rmse-vs-mae-vs-msle-vs-r%C2%B2-when-to-use-which).
+
 <br><br>
 
-# **Lets try Different Model Methods!**
+# **Bonus Materials: Lets try Different Algorithms!**
 
 <br><br>
 
 ## **Random Forest**
 
-Random Forest Regression is a supervised learning algorithm that uses ensemble learning method for regression. Ensemble learning method is a technique that combines predictions from multiple machine learning algorithms to make a more accurate prediction than a single model.
+Random forest is a supervised learning algorithm that combines multiple decision trees to make more accurate predictions. Decision trees subsequently partition the predictor space. Random forests train multiple decision trees on different subsamples of the data and combine the predictions from all trees. Importantly, each decision tree can only use a subset of all possible predictors.
 
 ```{r random forest}
 # define random forest model
@@ -547,6 +546,7 @@ random_forest_assesment<-random_forest_fit%>%
   abalone_metric(truth=age,estimate=.pred)%>%
   mutate(model="random forest")
 
+random_forest_assesment
 ```
 
 
@@ -555,12 +555,7 @@ random_forest_assesment<-random_forest_fit%>%
 
 <br><br>
 
-The word LASSO stands for Least Absolute Shrinkage and Selection Operator. It is a statistical formula for the regularization of data models and feature selection.
-
-
-<br><br>
-
-Lasso regression is a regularization technique. It is used over regression methods for a more accurate prediction. This model uses shrinkage. Shrinkage is where data values are shrunk towards a central point as the mean. The lasso procedure encourages simple, sparse models (i.e. models with fewer parameters). This particular type of regression is well-suited for models showing high levels of multicollinearity or when you want to automate certain parts of model selection, like variable selection/parameter elimination.
+Lasso regression is a form of regularized regression. Regularized regression shrinks the coefficients, which introduces bias but reduces variance, thus potentially increasing the accuracy of the model. Lasso regression can shrink some coefficients to zero, helping with variable selection.
 
 <br><br>
 
@@ -591,6 +586,8 @@ lasso_assesment<-lasso_fit%>%
   bind_cols(abalone_test%>%select(age))%>%
   abalone_metric(truth=age,estimate=.pred)%>%
   mutate(model="lasso regression")
+
+lasso_assesment
 ```
 
 <br><br>
@@ -598,6 +595,8 @@ lasso_assesment<-lasso_fit%>%
 ## **Ridge Regression **
 
 <br><br>
+
+Ridge regression is also a form of regularized regression. As opposed to Lasso, it doesn't shrink parameters to 0, and thus cannot perform variable selection.
 
 ```{r ridge}
 
@@ -627,6 +626,8 @@ ridge_assesment<-ridge_fit%>%
   abalone_metric(truth=age,estimate=.pred)%>%
   mutate(model="ridge regression")
 
+ridge_assesment
+
 ```
 
 <br><br>
@@ -652,14 +653,14 @@ In this case we are using residual mean squared error to gauge model fit. You ca
 
 <br><br>
 
-## **Now It's Your Turn!**
+## **Now It's Your Turn! Exercise 3**
 
 <br><br>
 
-With the code below, try to create a random forest model with different hyperparameters that has a better fit (lower rmse) than the model be just made. 
+With the code below, try to create a random forest model with different hyperparameters that has a better fit (lower rmse) than the model we just made. 
 
 
-For some guidance, here are what the three hyperperameters for random forest are
+For some guidance, here are what the three hyperperameters for random forest are:
 
 `mtry`
 An integer for the number of predictors that will be randomly sampled at each split when creating the tree models.
@@ -670,7 +671,7 @@ An integer for the number of trees contained in the ensemble.
 `min_n`
 An integer for the minimum number of data points in a node that are required for the node to be split further.
 
-Make sure you remove eval=false and also numbers that are too large might night allow your model to run
+Make sure you remove eval=false Also, numbers that are too large might not allow your model to run.
 
 
 **Let's see who can get the best rmse!**
@@ -728,7 +729,7 @@ your_model_assesment
 
 <br><br>
 
-Let's see which of the variables were most important in prediction and see whether we can create a better model with just the top variables
+Let's see which of the variables were most important in prediction and see whether we can create a better model with just the top variables:
 
 <br><br>
 
@@ -740,7 +741,7 @@ vip(fit)
 ```
 
 
-Lets make a recipie with just the most important variable
+Lets make a recipe with just the most important variable:
 
 
 
@@ -785,7 +786,7 @@ random_forest_assesment_refined<-random_forest_fit_refined%>%
 ```
 
 
-Lets compare to our other random forrest!
+Let's compare to our other random forest!
 
 ```{r}
 
@@ -797,6 +798,15 @@ refined_model_assesments<-random_forest_assesment_refined%>%
 refined_model_assesments
 
 ```
-We see that only using the most important variables we have a less accurate model sometimes the variables that aren't as important can account for unique variability 
+We see that only using the most important variables we have a less accurate model.
 
-That is all I have for today! Thank you and I will see you on Thursday!
+## Recap
+
+This workshop provided an introduction to Tidymodels. We started with some background about Tidymodels and the basic workflow. We then covered how to set up a simple regression model, as well as a quick overview of alternative algorithms—regularized regressions and random forests.
+
+## Resources to continue learning
+
+- [Basic tutorial on Tidymodels](https://www.tidymodels.org/start/)
+- [More tutorials on Tidymodels](https://www.tidymodels.org/learn/)
+- [Book: Tidy Modeling with R](https://www.tmwr.org/)
+- [Good and accesible book to learn more about statistical learning](https://www.statlearning.com/)
