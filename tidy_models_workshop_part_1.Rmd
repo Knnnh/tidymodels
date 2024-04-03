@@ -19,8 +19,7 @@ knitr::opts_chunk$set(echo = TRUE,warning = F,message = F)
 
 There is a lot of possible information that can be provided on this topic and this workshop isn't meant to exhaust those resources. If you have questions throughout the workshop you can type them in the chat. You can also always submit a [free consult request with Research Computing and Data Services](https://services.northwestern.edu/TDClient/30/Portal/Requests/ServiceDet?ID=93).
 
-Finally, this workshop doesn't provide a comprehensive or detailed introduction to predictive modeling.
-
+Finally, this workshop doesn't provide a comprehensive or detailed introduction to predictive modeling. After starting to understand Tidymodels today, I encourage you to go to the resources suggested at the end of this notebook to learn more about the logic and syntax.
 
 <br><br>
 
@@ -65,9 +64,9 @@ Finally, this workshop doesn't provide a comprehensive or detailed introduction 
 
 The tidymodels framework is a collection of packages for modeling and machine learning using tidyverse principles.
 
-
 **We have various workshops on different aspects of the tidyverse like data cleaning and manipulation**
 
+Tidymodels makes modeling easier by abstracting the details from different packages and adopting a modular design that allows you to explore models faster. It can also make your code more readable.
 
 <br><br>
 
@@ -193,7 +192,7 @@ The full abalone data set is located in the `\data` subdirectory. Read it into *
 <br><br>
 
 ```{r}
-abalone<-read.csv("data/abalone.csv")
+abalone<-read_csv("data/abalone.csv")
 ```
 
 <br><br>
@@ -203,12 +202,14 @@ abalone<-read.csv("data/abalone.csv")
 <br><br>
 
 ```{r}
-
+# Create age column
 abalone<-abalone%>%
   mutate(age=rings+1.5)
 
+# Skim data
 skim_without_charts(abalone)
 
+# Distribution of age
 ggplot(abalone,aes(x=age))+
   geom_histogram(bins=30)+theme_minimal()
 
@@ -229,26 +230,25 @@ This can help with skewness in our outcome variable. One can imagine that if our
 <br><br>
 
 ```{r}
-
+# Split into training and testing sets
+# Creates rsplit object that can be used with training and testing functions to extract the data in each split
 abalone_split <- initial_split(abalone, prop = 0.75,strata = age)
 
-
+# Take a look at solit
 abalone_split
 
-
+# Extract training set
 abalone_train<-training(abalone_split)
 
-
+# Extract testing set
 abalone_test<-testing(abalone_split)
 
 ```
 ```{r}
-
+# Distribution of age in test set
 strat_plot<-ggplot(abalone_test,aes(x=age))+
   geom_histogram(bins=30)+theme_minimal()
-
 strat_plot
-
 ```
 
 
@@ -257,26 +257,27 @@ How might the testing or training data change is we don't stratify?
 
 
 ```{r}
-
+# Split without stratifying
 abalone_split_ns <- initial_split(abalone, prop = 0.75)
 
 
 abalone_split_ns
 
-
+# Extract train set
 abalone_train_ns<-training(abalone_split_ns)
 
-
+# Extract test set
 abalone_test_ns<-testing(abalone_split_ns)
 
 ```
 
 ```{r}
-
+# Distribution of age in test set without stratifying
 nostrat_plot<-ggplot(abalone_test_ns,aes(x=age))+
   geom_histogram(bins=30)+
   theme_minimal()
 
+# Both distributions
 plot_grid(strat_plot,nostrat_plot,labels = c("Stratified", "Not Stratified"))
 ```
 
@@ -294,7 +295,7 @@ Make sure to remove the eval=FALSE from the two code chunks below:
 
 ```{r,eval=FALSE}
 
-abalone_split_2 <- initial_split(abalone, prop =)
+abalone_split_2 <- initial_split(abalone, prop = )
 
 
 abalone_split_2
@@ -323,15 +324,25 @@ ggplot(abalone_test_2,aes(x=age))+
 
 <br><br>
 
-Let's begin to construct a recipe for our model. First lets make a recipe with age as our outcome variable using all the other variables in our data. Because we constructed age using ring and there will be a highly correlated relationship we want to remove that variable from our recipe.
+Let's begin to construct a recipe for our model.
+
+A recipe is a description of the steps to be applied to a data set in order to prepare it for data analysis. Once a recipe is defined, it needs to be estimated before being applied to data. You can use recipes for both modeling and stand-alone preprocessing. A call to recipe gives you a recipe object.
+
+First lets make a recipe with age as our outcome variable using all the other variables in our data. Because we constructed age using ring and there will be a highly correlated relationship, we want to remove ring from our recipe.
 
 <br><br>
 
 ```{r}
 
 abalone_recipe<-recipe(age ~ .,data = abalone_train)%>%
+  # Creates a specification of a recipe step that will remove selected variables
   step_rm("rings")
+```
 
+A recipe object has several sub-objects, for example, a tibble containing the information about the original data set columns:
+
+```{r}
+abalone_recipe$var_info
 ```
 
 <br><br>
@@ -344,14 +355,14 @@ Next we might want to create dummy variables for our categorical data. We saw th
 
 abalone_recipe<-recipe(age ~ .,data = abalone_train)%>%
   step_rm("rings")%>%
+  # Creates a specification of a recipe that will convert nominal data (e.g., factors) into one or more 
+  # numeric binary model terms corresponding to the levels of the original data
   step_dummy(type)
-
-
 ```
 
 <br><br>
 
-Next we might want to add interactions of some variable or normalize (center and scale) our data. We can do this with the code below. Note that because we created multiple dummy variables for `type` we will want to add the `starts_with()` function to include all those variables in our interaction
+Next we might want to add interactions of some variable or normalize (centedatad scale) our data. We can do this with the code below. Note that because we created multiple dummy variables for `type` we will want to add the `starts_with()` function to include all those variables in our interaction
 
 <br><br>
 
@@ -360,7 +371,11 @@ Next we might want to add interactions of some variable or normalize (center and
 abalone_recipe<-recipe(age ~ .,data = abalone_train)%>%
   step_rm("rings")%>%
   step_dummy(type)%>%
+  # Creates a specification of a recipe that will create new columns that are interaction terms between 
+  # two or more variables
   step_interact(~longest_shell:diameter + shucked_weight:shell_weight + starts_with("type"):shucked_weight) %>% 
+  # Creates a specification of a recipe that will normalize numeric data to have a standard deviation of
+  # one and a mean of 0
   step_normalize(all_predictors())
 
 
@@ -380,8 +395,11 @@ This can show us what the training data will look like. I like to check to make 
 ```{r}
 
 
-
+# prep estimates the required parameters from a training set that can be later applied to other data sets
+# prep returns an updated recipe object with the estimates
 prep(abalone_recipe, training = abalone_train)%>%
+  # Apply the computations to new data, returns a tibble
+  # new_data=NULL returns the pre-processed training data
   bake(new_data=NULL)%>%
   head()
   
@@ -399,10 +417,19 @@ The scope of this workshop is not to chose which algorithm might be best for a c
 
 ```{r}
 
-regression_model<-linear_reg()%>%
+regression_model<-
+  # Define type of model, which you can estimate in different ways (as selected by engine)
+  linear_reg()%>%
+  # Specify which package will be used to estimate the model, along with any arguments specific to that software. Returns updated model specification
+  # importance="permutation" specifies method to evaluate feature importance
+  # Permutation shuffles the values of a feature and measures the change in model performance
+  # https://medium.com/@T_Jen/feature-importance-for-any-model-using-permutation-7997b7287aa
   set_engine("lm", importance="permutation")
 
+regression_model
 ```
+
+Please note that the model is not trained until you use `fit()`.
 
 <br><br>
 
@@ -412,10 +439,15 @@ regression_model<-linear_reg()%>%
 
 ```{r}
 
-regression_workflow<-workflow()%>%
+regression_workflow<-
+  # Creates workflow, or container object that aggregates information required to fit and predict from a model. Returns workflow object
+  workflow()%>%
+  # Add model to workflow
   add_model(regression_model)%>%
+  # Add recipe to workflow
   add_recipe(abalone_recipe)
 
+regression_workflow
 ```
 
 <br><br>
@@ -427,9 +459,10 @@ regression_workflow<-workflow()%>%
 ```{r}
 
 regression_fit<-regression_workflow%>%
+  # Estimate model for given data
   fit(abalone_train)
 
-
+# Show results as tidy tibble
 tidy(regression_fit)
 ```
 <br><br>
@@ -441,8 +474,10 @@ tidy(regression_fit)
 Use your `fit()` object to predict the age of a hypothetical female abalone with longest_shell = 0.50, diameter = 0.10, height = 0.30, whole_weight = 4, shucked_weight = 1, viscera_weight = 2, shell_weight = 1 .
 
 ```{r}
+# Create tibble with new data
 abalone_prediction<-tibble(type= "F",longest_shell = 0.50, diameter = 0.10, height = 0.30, whole_weight = 4, shucked_weight = 1, viscera_weight = 2, shell_weight = 1,rings=11)
 
+# Get prediction for new data
 predict(regression_fit, abalone_prediction)
 
 ```
@@ -487,18 +522,19 @@ predict(regression_fit, abalone_prediction_2)
 <br><br>
 
 ```{r}
+# metric_set combines multiple metric functions together into a new function that calculates all of them at once. Returns function
 abalone_metric<-metric_set(rmse,rsq,mae)
 
-# rmse - root mean squared error 
-
-# rsq - r squared 
-
-# mae - mean absolute error
-
-regression_assesment<-regression_fit%>%
-  predict(new_data = abalone_test)%>%
-  bind_cols(abalone_test%>%select(age))%>%
-  abalone_metric(truth=age,estimate=.pred)%>%
+regression_assesment<-
+  # Estimated model
+  regression_fit%>%
+  # Predictions for test set
+  predict(new_data = abalone_test) %>% 
+  # Add age column
+  bind_cols(abalone_test%>%select(age)) %>% 
+  # Calculate metrics
+  abalone_metric(truth=age,estimate=.pred) %>% 
+  # Add new column for later
   mutate(model="regular regression")
 
 regression_assesment
@@ -519,7 +555,9 @@ Random forest is a supervised learning algorithm that combines multiple decision
 
 ```{r random forest}
 # define random forest model
-
+# Note that rand_forest takes hyperparameters
+# mtry = number of predictors sampled at each split
+# trees = number of trees in the ensemble
 random_forest_model <- rand_forest(mode = "regression", mtry = 6, trees = 500) %>%
   set_engine("ranger",importance="permutation")
 
@@ -527,6 +565,7 @@ random_forest_model <- rand_forest(mode = "regression", mtry = 6, trees = 500) %
 
 random_forest_workflow<-workflow()%>%
   add_model(random_forest_model)%>%
+  # We can reuse the recipe if we want!
   add_recipe(abalone_recipe)
 
 
@@ -596,7 +635,7 @@ lasso_assesment
 
 <br><br>
 
-Ridge regression is also a form of regularized regression. As opposed to Lasso, it doesn't shrink parameters to 0, and thus cannot perform variable selection.
+Ridge regression also a form of regularized regression. As opposed to Lasso, it doesn't shrink parameters to 0, and thus cannot perform variable selection.
 
 ```{r ridge}
 
@@ -636,19 +675,21 @@ ridge_assesment
 After assessing the performance of these 4 methods, which do you think is best? 
 
 ```{r}
-
+# Put all metrics together
 final_model_assesments<-regression_assesment%>%
   bind_rows(random_forest_assesment)%>%
   bind_rows(lasso_assesment)%>%
-  bind_rows(ridge_assesment)%>%
-  filter(.metric=="rmse")%>%
+  bind_rows(ridge_assesment) %>% 
+  # Filter only rmse
+  filter(.metric=="rmse") %>% 
+  # Order by estimate (ascending order)
   arrange(.estimate)
 
 final_model_assesments
 
 ```
 
-In this case we are using residual mean squared error to gauge model fit. You can ask for multiple type of fit statistics but for simplicity here I am only choosing one. We see that of the four models we ran, our random forest seems to have the lowest rmse which is one way to compare fit.
+In this case we are using residual mean squared error to gauge model fit. You can ask for multiple type of fit statistics but for simplicity here I am only choosing one. We see that of the four models we ran, our random forest seems to have the lowest rmse which is *one way* to compare fit.
 
 
 <br><br>
@@ -669,7 +710,7 @@ An integer for the number of predictors that will be randomly sampled at each sp
 An integer for the number of trees contained in the ensemble.
 
 `min_n`
-An integer for the minimum number of data points in a node that are required for the node to be split further.
+An integer for the minimum number of data points in a node that are required for the node to be split further. (Defaults to 5 for regression.)
 
 Make sure you remove eval=false Also, numbers that are too large might not allow your model to run.
 
@@ -734,8 +775,10 @@ Let's see which of the variables were most important in prediction and see wheth
 <br><br>
 
 ```{r}
+# Returns engine specific fit embedded within a Tidymodels object fit
 fit<-extract_fit_engine(random_forest_fit)
 
+# Variable importance plot
 vip(fit)
 
 ```
@@ -757,7 +800,7 @@ abalone_recipe_refined<-recipe(age ~ shell_weight+shucked_weight+whole_weight,da
 ```{r}
 
 
-random_forest_model_refined <- rand_forest(mode = "regression", mtry = 3, trees = 600) %>%
+random_forest_model_refined <- rand_forest(mode = "regression", mtry = 3, trees = 500) %>%
   set_engine("ranger",importance="permutation")
 
 
@@ -798,7 +841,7 @@ refined_model_assesments<-random_forest_assesment_refined%>%
 refined_model_assesments
 
 ```
-We see that only using the most important variables we have a less accurate model.
+In this case, only using the most important variables we have a less accurate model.
 
 ## Recap
 
