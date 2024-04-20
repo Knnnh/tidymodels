@@ -496,6 +496,8 @@ In this workshop we reviewed the concepts we learned in workshop 1 and tried to 
 
 -   <https://www.tidymodels.org/start/models/>
 
+If you are more interested in using Python, `scikit-learn` is equivalent to `tidymodels`, which is covered in our (NSIP series)[https://github.com/nuitrcs/NextStepsInPython]
+
 # **Bonus Section: Model tuning via grid search**
 
 We would like to identify a set of hyperparameters that will give the best prediction.
@@ -544,7 +546,7 @@ A better way to is to do **`resampling`**, in which we sample from our training 
 
 ![](images/resampling.svg)
 
-For resampling of our data, we will use [**Cross Validation**](3.1.%20Cross-validation:%20evaluating%20estimator%20performance%20—%20scikit-learn%201.4.2%20documentation)**.** We first define an object that holds information on how resampling is done.
+For resampling of our data, we will use [**Cross Validation**](https://scikit-learn.org/stable/modules/cross_validation.html). We first define an object that holds information on how resampling is done.
 
 ```{r}
 # Do 5-fold cross validation
@@ -673,7 +675,7 @@ Thank you all for coming this week and feel free to stay around or email me if y
 
 ## Exercise 1
 
-```{r}
+```{r, eval=FALSE}
 titanic_split_2 <- initial_split(titanic, prop = 0.95, strata = sex)
 
 titanic_split_2
@@ -695,7 +697,7 @@ gridExtra::grid.arrange(g1, g2, nrow = 1)
 
 ## Exercise 2
 
-```{r}
+```{r, eval=FALSE}
 logistic_recipe <- recipe(
   survived~pclass+sex+age+sib_sp+parch+fare,
   data = titanic_train) %>%
@@ -707,7 +709,7 @@ logistic_recipe <- recipe(
 
 ## Exercise 3
 
-```{r}
+```{r, eval=FALSE}
 model_assessment1b <- logistic_fit %>%
   # make prediction on test data
   predict(new_data = titanic_test) %>%
