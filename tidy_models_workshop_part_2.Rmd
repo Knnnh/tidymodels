@@ -30,6 +30,9 @@ Again, there is a lot of possible information that can be provided on this topic
 -   Try Other types of Classification Models
 
     -   Experiment with different tuning parameters
+
+-   If we have time, we will go over these:
+
     -   Talk about tuning grids
     -   Talk about different forms of resampling
 
@@ -281,11 +284,17 @@ As a quick review, steps we defined are:
 
 ## **Bake Both Recipes**
 
+Suppose we'd like to try a different model: looks like we can do classification with a model called random forest!
+
+```{r}
+show_engines("rand_forest")
+```
+
 Let's also create a recipe for a random forest model. For this model, I will use something called **one-hot encoding** when dummy coding.
 
 ```{r}
 random_forest_recipe <- recipe(
-  survived~pclass+sex+age+sib_sp+parch+fare,
+  survived ~ pclass + sex + age + sib_sp + parch + fare,
   data = titanic_train) %>%
   step_impute_linear(age) %>%
   step_dummy(pclass,sex,one_hot = TRUE) %>%
@@ -309,6 +318,8 @@ random_forest_recipe %>%
   head
 ```
 
+**NOTE**: Usually dummy variables take on value of 0 or 1, but we normalized all the predictors so they have mean 0 and standard deviation 1. Usually this wouldn't be the best practice, but it shouldn't impact the prediction output.
+
 ## **Fit your Logistic Model**
 
 Now that we have the recipe for logistic regression model, we should initialize the logistic model for fitting. Logistic regression is usually done with the `glm` function. The appropriate engine to set for that is `"glm"`.
@@ -319,15 +330,17 @@ As we've seen before, some models can be used for both classification and regres
 logistic_model <- logistic_reg() %>%
   set_engine("glm") %>%
   set_mode("classification")
+
 logistic_model
 ```
 
-After model definition, we create a workflow that combines the recipe and the model.
+After model definition, we **create a workflow** that combines the recipe and the model.
 
 ```{r}
 logistic_workflow <- workflow() %>%
   add_model(logistic_model) %>%
   add_recipe(logistic_recipe)
+
 logistic_workflow
 ```
 
@@ -337,12 +350,15 @@ The only thing left to do is fit the model!
 logistic_fit <- logistic_workflow %>%
   fit(data=titanic_train)
 
+# output model in a tidy format
 tidy(logistic_fit)
 ```
 
 ## Fit a Random Forest With no Hyperparameters
 
-Let's do the same thing for random forest model. We'll fit two random forest models: one with a default set of hyperparameters and another one with custom hyperparameters. **Hyperparameters** are a set of parameters that define the model learning process.
+Let's do the same thing for random forest model.
+
+We'll fit two random forest models: one with a default set of hyperparameters and another one with custom hyperparameters. **Hyperparameters** are a set of parameters that define the model learning process.
 
 -   `mtry`: number of predictors that is randomly samples for each split
 -   `trees`: number of trees in a random forest model
@@ -368,7 +384,7 @@ random_forest_fit<-random_forest_workflow%>%
 
 ```{r}
 # initialize the model
-random_forest_model_2<-rand_forest(mtry = 8,trees =1000,min_n = 4)%>%
+random_forest_model_2<-rand_forest(mtry = 8,trees = 1000,min_n = 4)%>%
   set_engine("ranger")%>%
   set_mode("classification")
 
@@ -391,12 +407,12 @@ There are many different types of metrics available for evaluating classificatio
 ```{r}
 model_assessment1 <- logistic_fit %>%
   # make prediction on test data
-  predict(new_data=titanic_test) %>%
+  predict(new_data = titanic_test) %>%
   # bind prediction and the "true survival outcome" together
   bind_cols(titanic_test %>%
               select(survived)) %>%
   # calculate accuracy
-  accuracy(truth=survived,estimate=.pred_class) %>%
+  accuracy(truth = survived,estimate = .pred_class) %>%
   # add model name
   mutate(model="Logistic Regression")
 
@@ -405,14 +421,14 @@ model_assessment2<-random_forest_fit %>%
   bind_cols(titanic_test %>%
               select(survived)) %>%
   accuracy(truth=survived,estimate=.pred_class) %>%
-  mutate(model="Random Forrest 1")
+  mutate(model="Random Forest Default Params")
 
 model_assessment3<-random_forest_fit_2 %>%
   predict(new_data=titanic_test) %>%
   bind_cols(titanic_test %>%
               select(survived)) %>%
   accuracy(truth=survived,estimate=.pred_class) %>%
-  mutate(model="Random Forrest 2")
+  mutate(model="Random Forest Custom Params")
 
 model_assessment <- bind_rows(
   model_assessment1,
@@ -428,7 +444,38 @@ print(model_assessment)
 As I mentioned, there are other metrics available. Try using `precision()` and `recall()` in place of `accuracy()` and see if the same results hold!
 
 ```{r}
+model_assessment1b <- logistic_fit %>%
+  # make prediction on test data
+  predict(new_data = titanic_test) %>%
+  # bind prediction and the "true survival outcome" together
+  bind_cols(titanic_test %>%
+              select(survived)) %>%
+  # calculate accuracy
+  # accuracy(truth = survived,estimate = .pred_class) %>% # change your metric here
+  # add model name
+  mutate(model="Logistic Regression")
 
+model_assessment2b <- random_forest_fit %>%
+  predict(new_data=titanic_test) %>%
+  bind_cols(titanic_test %>%
+              select(survived)) %>%
+  # accuracy(truth = survived,estimate = .pred_class) %>% # change your metric here
+  mutate(model="Random Forest Default Params")
+
+model_assessment3b <- random_forest_fit_2 %>%
+  predict(new_data=titanic_test) %>%
+  bind_cols(titanic_test %>%
+              select(survived)) %>%
+  # accuracy(truth = survived,estimate = .pred_class) %>% # change your metric here
+  mutate(model="Random Forest Custom Params")
+
+model_assessmentb <- bind_rows(
+  model_assessment1b,
+  model_assessment2b,
+  model_assessment3b
+)
+
+print(model_assessmentb)
 ```
 
 What are precision and recall? Here are the formulas for precision and recall:
@@ -441,11 +488,19 @@ These measures condition on different aspects of the data and the model output. 
 
 What would be the Recall if we have a model that labels everything as positive?
 
-# **Model tuning via grid search**
+# Conclusion
+
+In this workshop we reviewed the concepts we learned in workshop 1 and tried to use tidymodels for a different machine learning problem - classification. Once you get more familiar with the tidymodels framework, this package works for you to simplify the model building process. If you would like to learn more about tidymodels, I encourage you to check out guides available online!
+
+-   <https://www.tidymodels.org/learn/>
+
+-   <https://www.tidymodels.org/start/models/>
+
+# **Bonus Section: Model tuning via grid search**
 
 We would like to identify a set of hyperparameters that will give the best prediction.
 
-But there are so many combinations of hyperparameters to choose from and it can be burdensome to create a workflow for each combination. This is where **grid search** comes into place. Grid search facilitates the process of computing performance metrics for a pre-defined set of hyperparameters. Let's that with a random forest model!
+But there are so many combinations of hyperparameters to choose from and it can be burdensome to create a workflow for each combination. This is where **grid search** comes into place. Grid search facilitates the process of computing performance metrics for a pre-defined set of hyperparameters. Let's try that with a random forest model!
 
 First, in the model definition step, instead of specifying a hyperparameter with a specific value, we will pass `tune()`, which serves as a placeholder and lets the model know that we plan on tuning this parameter.
 
@@ -458,272 +513,232 @@ random_forest_model_tune <- rand_forest(
   set_mode("classification") %>% 
   set_engine("ranger", importance = "impurity")
 
-# 
-random_forest_workflow_tune <- workflow() %>%
+# define workflow as done before
+random_forest_tune_workflow <- workflow() %>%
   add_model(random_forest_model_tune) %>%
   add_recipe(random_forest_recipe)
-
-random_forest_fit_tune <- random_forest_workflow_tune%>%
-  fit(data=titanic_train)
 ```
 
-After we set our models we have to get ready for our search
+Next, we can define a set of hyperparameters we would like to try. There are convenience functions corresponding to the hyperparameters that we can use to define the grid.
 
-Here we:
-
-Do a resampling of our data - for this we are doing Cross Validation.
-
-Set the metric that we want to use.
-
-Set a grid of values to try for each hyperparameter.
-
-We are also set our grid control to save the predictions we are making.
-
-In this case we are not setting a grid so the hyper parameters that we are tuning will be random within the possible range.
+There are various ways to choose values for the grid; in this example, we will choose uniformly across the range of possible values.
 
 ```{r}
-titanic_rs <- bootstraps(titanic_train, times = 5)
+random_forest_grid <- grid_regular(
+  mtry(range = c(1,6)), # convenience function for mtry
+  min_n(), # convenience function of min_n
+  
+  # number of values for each parameter we would like to try
+  # below indicates 3 mtry values and 5 min_n values
+  levels = c(mtry = 3, min_n = 3)
+)
 
-
-roc_vals <- metric_set(roc_auc)
-
-
-
-ctrl <- control_grid(verbose = FALSE, save_pred = TRUE)
-
-
+random_forest_grid
 ```
 
-This code tests your models on the grid based on the amount of resampling and hyperparemeters you set.
+The grid is `tibble` with all combinations of the hyperparameters.
 
-**Warning these can take a while to run so I would start small to make sure it doesn't break**
+So far, we have a workflow that defines the preprocessing steps and the model, and a grid of hyperparameters we would like to test. How do we decide which set of hyperparameters is the best? Should we train on the training dataset and and choose the hyperparameters that can best predict the testing data? That is not a good idea because that will lead to what is called [overfitting](What is Overfitting? - Overfitting in Machine Learning Explained - AWS (amazon.com). Essentially, the model that seems to work well with our data will not generalize well to the real world and lead to overly optimistic result.
 
-```{r,}
-
-
-formula_res <-
-  tune_grid(random_forest_model_tune,
-    random_forest_recipe,
-    resamples = titanic_rs,
-    metrics = roc_vals,
-    control = ctrl
-  )
-
-
-formula_res
-```
-
-Here we can see the accuracy for each individual model within one of our bootstraps out of the five total
-
-Within each of the 5 bootstraps it defaults to ten models (we can change that later when we set out grid)
-
-```{r}
-
-formula_res %>% 
-  select(.metrics) %>% 
-  slice(1) %>% 
-  pull(1)
-
-
-```
-
-This collects the accuracy of the models across our bootstraps
-
-You can see that each of the ten models within each bootstrap uses the same hyperparameters
-
-```{r}
-
-estimates <- collect_metrics(formula_res)
-estimates
-
-```
-
-This shows us the best models in that we made and gives us an idea of the types of hyperparameters that we might want to be using
-
-```{r}
-show_best(formula_res, metric = "roc_auc")
-```
-
-This shows us how our models would predict our data
-
-```{r}
-collect_predictions(formula_res)%>%
-  head()
-```
-
-This shows the accuracy of the different hyperparameters tuning
-
-```{r}
-
-autoplot(formula_res, metric = "roc_auc")
-
-```
-
-A graphic representation of our average predictions across the variable age
-
-```{r}
-
-augment(formula_res) %>%
-  ggplot(aes(age, .pred_Yes, color = survived)) +
-  geom_point() +
-  facet_wrap(~survived)+
-  theme_minimal()
-
-```
-
-Now try running a random forest with the suggested hyperparameters
-
-```{r}
-
-random_forest_model_refined<-rand_forest(mtry = 2,trees =1000,min_n = 30)%>%
-  set_engine("ranger", importance = "impurity")%>%
-  set_mode("classification")
-
-
-random_forest_workflow_refined<-workflow()%>%
-  add_model(random_forest_model_refined)%>%
-  add_recipe(random_forest_recipe)
-
-
-random_forest_fit_refined<-random_forest_workflow_refined%>%
-  fit(data=titanic_train)
-
-
-```
-
-```{r}
-
-
-fit<-extract_fit_engine(random_forest_fit_refined)
-
-vip(fit)
-
-```
-
-```{r}
-
-model_assesment4<-random_forest_fit_refined%>%
-  predict(new_data=titanic_test)%>%
-  bind_cols(titanic_test%>%
-              select(survived))%>%
-  accuracy(truth=survived,estimate=.pred_class)%>%
-  mutate(model="Random Forrest refined bootstrap")%>%
-  bind_rows(model_assesment3)
-
-model_assesment4%>%
-  arrange(-.estimate)
-
-```
-
-# **Now lets try to do resampling through cross validation!**
-
-This time lets tune all three of our hyperparameters
-
-```{r}
-
-model_cv <- 
-  rand_forest(mtry = tune(), trees = tune(), min_n = tune()) %>% 
-  set_engine("ranger", importance = "impurity") %>% 
-  set_mode("classification")
-
-```
-
-This time lets set a regular tuning grid
-
-```{r}
-
-
-
-grid_rf<- grid_random(
-  mtry() %>% range_set(c( 1,  12)),
-  trees() %>% range_set(c( 500, 2000)), 
-  min_n() %>% range_set(c(2,  10)),
-  size = 10)
-
-
-grid_rf
-
-
-```
-
-Here we create a new workflow for the model we just made
-
-```{r}
-
-wkfl_cv <- 
-  workflow() %>% 
-  add_recipe(random_forest_recipe) %>% 
-  add_model(model_cv)
-
-
-```
-
-Here we create the folds - Here we create five
-
--   
+A better way to is to do **`resampling`**, in which we sample from our training set only repeatedly and test our hyperparameters - this way, the model is only based on the training set and the test set is only used for final model evaluation. The following image is a graphical representation of resampling.
 
 ![](images/resampling.svg)
 
-```{r}
+For resampling of our data, we will use [**Cross Validation**](3.1.%20Cross-validation:%20evaluating%20estimator%20performance%20—%20scikit-learn%201.4.2%20documentation)**.** We first define an object that holds information on how resampling is done.
 
+```{r}
+# Do 5-fold cross validation
 cv_folds <- vfold_cv(titanic_train, v = 5)
-cv_folds
-
 ```
 
-Here we use what we made to run the different models on our folds
-
-**Again be careful here because this can take some time so start small to make sure it doesn't break**
+We also need to decide which metrics is used to evaluate the performance. Let's use accuracy and precision. `metric_set()` combines multiple metric functions together into a new function that calculates all at once, so you're not restricted to using only one metric.
 
 ```{r}
+random_forest_metrics <- metric_set(accuracy, precision)
+```
 
-rf_fit <- tune_grid(
-  wkfl_cv,
+Finally, we can also control some aspects of the grid search process.
+
+```{r}
+# do not print progress while fitting
+# save the out of sample predictions in the output
+ctrl <- control_grid(verbose = FALSE, save_pred = TRUE)
+```
+
+To recap, we have defined the following:
+
+-   workflow that defines the preprocessing step and the model
+-   resampling method
+-   metrics to use for model evaluation
+-   grid search process
+
+All that is left is to train and get prediction result. `tune_grid()` takes all of this information and begins the grid search process.
+
+```{r}
+rf_tune_fit <- tune_grid(
+  random_forest_tune_workflow,
   resamples = cv_folds,
-  grid = grid_rf,
-  metrics = roc_vals,
-  control = ctrl 
+  grid = random_forest_grid,
+  metrics = random_forest_metrics,
+  control = ctrl
 )
-
-
+rf_tune_fit
 ```
 
+Each row in the output corresponds to 1 fold in cross validation. The data in `splits`, `.metrics`, and `.notes` are actually saved as a tibble (technically, as a list and there's a tibble inside). Let's check out what's saved in the first row in the `.metrics` column.
+
+There are 9 x 2 = 18 rows. (9 hyperparameter combinations and 2 metrics)
+
 ```{r}
-collect_metrics(rf_fit)
+# first row in .metrics column
+rf_tune_fit$.metrics[1]
 ```
 
+This data structure seems complicated! How do we navigate through this and get information?
+
+Luckily, there are functions to facilitate extracting and summarizing information from the grid search result.
+
+### Summarize Metrics
+
+This collects the accuracy and precision of the models across our cross validation and summarizes them as a mean and standard error.
+
 ```{r}
-autoplot(rf_fit, metric = "roc_auc")
+estimates <- collect_metrics(rf_tune_fit)
+estimates
 ```
 
+### Get Best Model
+
+This shows us the best models in terms of the metrics we defined and gives us an idea of the types of hyperparameters that we might want to be using.
+
 ```{r}
-show_best(rf_fit, metric = "roc_auc", maximize = TRUE)
+# show top 5 best model based on accuracy
+show_best(rf_tune_fit, metric = "accuracy")
+
+# show best top 5model based on precision
+show_best(rf_tune_fit, metric = "precision")
+
+# find the tuning parameter combination with the best performance value
+select_best(rf_tune_fit, metric = "accuracy")
 ```
 
+### Get Predictions from Model Fitted with a Resample
+
+This shows us how our models would predict our data. `id` column indicates the fold (iteration) of the resample.
+
 ```{r}
-select_best(rf_fit, metric = "roc_auc", maximize = TRUE)
-
-
+collect_predictions(rf_tune_fit) %>%
+  head()
 ```
 
+### Plot Results
+
+This shows the performance of the different hyperparameters.
+
 ```{r}
-tuned_model <-
-  wkfl_cv %>% 
-  finalize_workflow(select_best(rf_fit, metric = "roc_auc", maximize = TRUE)) %>% 
+autoplot(rf_tune_fit)
+```
+
+### Finalize workflow with the Best Hyperparameter Tuning
+
+We can finalize our workflow once we have decided which model we would like to use.
+
+```{r}
+best_params <- select_best(rf_tune_fit, metric = "accuracy")
+
+# finalize our random forest workflow and the fit to training data
+tuned_model <- random_forest_tune_workflow %>% 
+  finalize_workflow(best_params) %>%
   fit(data = titanic_train)
+tuned_model
 ```
 
-```{r}
-model_assesment5<-tuned_model%>%
-  predict(new_data=titanic_test)%>%
-  bind_cols(titanic_test%>%
-              select(survived))%>%
-  accuracy(truth=survived,estimate=.pred_class)%>%
-  mutate(model="Random Forrest refined cross validation")%>%
-  bind_rows(model_assesment4)
+Let's finally evaluate our final model!
 
-model_assesment5%>%
+```{r}
+tuned_assessment <- tuned_model %>%
+  predict(new_data = titanic_test) %>%
+  bind_cols(titanic_test %>% select(survived)) %>%
+  accuracy(truth = survived, estimate = .pred_class) %>%
+  mutate(model = "Random Forrest refined cross validation")
+
+model_assessment %>%
+  bind_rows(tuned_assessment) %>%
   arrange(-.estimate)
 ```
 
 Thank you all for coming this week and feel free to stay around or email me if you have any questions!
+
+# Exercise Solutions
+
+## Exercise 1
+
+```{r}
+titanic_split_2 <- initial_split(titanic, prop = 0.95, strata = sex)
+
+titanic_split_2
+
+titanic_test_2 <- testing(titanic_split_2)
+
+titanic_train_2 <- training(titanic_split_2)
+
+g1 <- ggplot(titanic_train_2, aes(survived)) +
+  geom_bar() +
+  theme_minimal() +
+  ggtitle("Survival Distribution in\nTraining Set")
+g2 <- ggplot(titanic_test_2, aes(survived)) +
+  geom_bar() +
+  theme_minimal() +
+  ggtitle("Survival Distribution in\nTesting Set")
+gridExtra::grid.arrange(g1, g2, nrow = 1)
+```
+
+## Exercise 2
+
+```{r}
+logistic_recipe <- recipe(
+  survived~pclass+sex+age+sib_sp+parch+fare,
+  data = titanic_train) %>%
+  step_impute_linear(age) %>%
+  step_dummy(pclass, sex) %>%
+  step_interact(~ age:fare + starts_with("sex"):fare) %>%
+  step_normalize(all_predictors())
+```
+
+## Exercise 3
+
+```{r}
+model_assessment1b <- logistic_fit %>%
+  # make prediction on test data
+  predict(new_data = titanic_test) %>%
+  # bind prediction and the "true survival outcome" together
+  bind_cols(titanic_test %>%
+              select(survived)) %>%
+  # calculate accuracy
+  precision(truth = survived,estimate = .pred_class) %>% # change your metric here
+  # add model name
+  mutate(model="Logistic Regression")
+
+model_assessment2b <- random_forest_fit %>%
+  predict(new_data=titanic_test) %>%
+  bind_cols(titanic_test %>%
+              select(survived)) %>%
+  precision(truth = survived,estimate = .pred_class) %>% # change your metric here
+  mutate(model="Random Forest Default Params")
+
+model_assessment3b <- random_forest_fit_2 %>%
+  predict(new_data=titanic_test) %>%
+  bind_cols(titanic_test %>%
+              select(survived)) %>%
+  precision(truth = survived,estimate = .pred_class) %>% # change your metric here
+  mutate(model="Random Forest Custom Params")
+
+model_assessmentb <- bind_rows(
+  model_assessment1b,
+  model_assessment2b,
+  model_assessment3b
+)
+
+print(model_assessmentb)
+
+```
