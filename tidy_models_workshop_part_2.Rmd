@@ -115,7 +115,7 @@ print(head(titanic))
 
 According to the codebook, we can see that `survival`, `pclass`, and `sex` are variables we would like to include in the model that are categorical.
 
-We want to convert them to `factor` data type. Benefit of doing this is that R will know which variable is categorical vs numeric and we can explicitly choose which category serves as baseline. We want to reorder the factor so that `"Yes"` is baseline for \` and `"female"` is baseline for `sex` - just specify that category first when defining levels.
+We want to convert them to `factor` data type. Benefit of doing this is that R will know which variable is categorical vs numeric and we can explicitly choose which category serves as baseline. We want to reorder the factor so that `"Yes"` is baseline for `survived` and `"female"` is baseline for `sex` - just specify that category first when defining levels.
 
 ```{r}
 # convert categorical to factor
@@ -144,7 +144,7 @@ skim_without_charts(titanic)
 
 ```
 
-`cabin` and `embarked` variables have some missing values, but we won't be using those variables so we're don't have to be worried about that. Do note that there are 177 observations with missing `age` variable. We will come back to this later and try to fill in these values by using imputation methods.
+`cabin` and `embarked` variables have some missing values, but we won't be using those variables so we don't have to be worried about that. Do note that there are 177 observations with missing `age` variable. We will come back to this later and try to fill in these values by using imputation methods.
 
 ## **Split our data**
 
@@ -272,7 +272,7 @@ As a quick review, steps we defined are:
 
 -   impute age by linear regression model
 
--   one-hot dummy code `pclass`, `sex`
+-   dummy code `pclass`, `sex`
 
 -   add interaction between age vs fare and sex vs fare
 
@@ -360,13 +360,13 @@ Let's do the same thing for random forest model.
 
 We'll fit two random forest models: one with a default set of hyperparameters and another one with custom hyperparameters. **Hyperparameters** are a set of parameters that define the model learning process.
 
--   `mtry`: number of predictors that is randomly samples for each split
--   `trees`: number of trees in a random forest model
--   `min_n`: minimum number of data points in a node that are required for it to be split further
+-   `mtry` (default = sqrt of \# variables) : number of predictors that is randomly sampled for each split
+-   `trees` (default = 500) : number of trees in a random forest model
+-   `min_n` (default = 1): minimum number of data points in a node that are required for it to be split further
 
 ```{r}
 # initialize the model
-random_forest_model<-rand_forest()%>%
+random_forest_model <- rand_forest()%>%
   set_engine("ranger")%>%
   set_mode("classification")
 
@@ -496,7 +496,7 @@ In this workshop we reviewed the concepts we learned in workshop 1 and tried to 
 
 -   <https://www.tidymodels.org/start/models/>
 
-If you are more interested in using Python, `scikit-learn` is equivalent to `tidymodels`, which is covered in our (NSIP series)[https://github.com/nuitrcs/NextStepsInPython]
+If you are more interested in using Python, `scikit-learn` is equivalent to `tidymodels`, which is covered in our [NSIP series](https://github.com/nuitrcs/NextStepsInPython)
 
 # **Bonus Section: Model tuning via grid search**
 
@@ -531,7 +531,7 @@ random_forest_grid <- grid_regular(
   min_n(), # convenience function of min_n
   
   # number of values for each parameter we would like to try
-  # below indicates 3 mtry values and 5 min_n values
+  # below indicates 3 mtry values and 3 min_n values
   levels = c(mtry = 3, min_n = 3)
 )
 
@@ -540,7 +540,7 @@ random_forest_grid
 
 The grid is `tibble` with all combinations of the hyperparameters.
 
-So far, we have a workflow that defines the preprocessing steps and the model, and a grid of hyperparameters we would like to test. How do we decide which set of hyperparameters is the best? Should we train on the training dataset and and choose the hyperparameters that can best predict the testing data? That is not a good idea because that will lead to what is called [overfitting](What is Overfitting? - Overfitting in Machine Learning Explained - AWS (amazon.com). Essentially, the model that seems to work well with our data will not generalize well to the real world and lead to overly optimistic result.
+So far, we have a workflow that defines the preprocessing steps and the model, and a grid of hyperparameters we would like to test. How do we decide which set of hyperparameters is the best? Should we train on the training dataset and and choose the hyperparameters that can best predict the testing data? That is not a good idea because that will lead to what is called [overfitting](https://aws.amazon.com/what-is/overfitting/#:~:text=Overfitting%20occurs%20when%20the%20model,to%20several%20reasons%2C%20such%20as%3A&text=The%20training%20data%20size%20is,all%20possible%20input%20data%20values.). Essentially, the model that seems to work well with our data will not generalize well to the real world and lead to overly optimistic result.
 
 A better way to is to do **`resampling`**, in which we sample from our training set only repeatedly and test our hyperparameters - this way, the model is only based on the training set and the test set is only used for final model evaluation. The following image is a graphical representation of resampling.
 

@@ -497,9 +497,10 @@ include in the model that are categorical.</p>
 <p>We want to convert them to <code>factor</code> data type. Benefit of
 doing this is that R will know which variable is categorical vs numeric
 and we can explicitly choose which category serves as baseline. We want
-to reorder the factor so that <code>&quot;Yes&quot;</code> is baseline for ` and
-<code>&quot;female&quot;</code> is baseline for <code>sex</code> - just specify
-that category first when defining levels.</p>
+to reorder the factor so that <code>&quot;Yes&quot;</code> is baseline for
+<code>survived</code> and <code>&quot;female&quot;</code> is baseline for
+<code>sex</code> - just specify that category first when defining
+levels.</p>
 <pre class="r"><code># convert categorical to factor
 titanic &lt;- titanic %&gt;%
   mutate(
@@ -771,10 +772,10 @@ such as missingness.</p>
 </tbody>
 </table>
 <p><code>cabin</code> and <code>embarked</code> variables have some
-missing values, but we won’t be using those variables so we’re don’t
-have to be worried about that. Do note that there are 177 observations
-with missing <code>age</code> variable. We will come back to this later
-and try to fill in these values by using imputation methods.</p>
+missing values, but we won’t be using those variables so we don’t have
+to be worried about that. Do note that there are 177 observations with
+missing <code>age</code> variable. We will come back to this later and
+try to fill in these values by using imputation methods.</p>
 </div>
 <div id="split-our-data" class="section level2">
 <h2><strong>Split our data</strong></h2>
@@ -918,7 +919,7 @@ yourself!</p>
 <ul>
 <li><p>set model formula using <code>titanic_train</code> data</p></li>
 <li><p>impute age by linear regression model</p></li>
-<li><p>one-hot dummy code <code>pclass</code>, <code>sex</code></p></li>
+<li><p>dummy code <code>pclass</code>, <code>sex</code></p></li>
 <li><p>add interaction between age vs fare and sex vs fare</p></li>
 <li><p>normalize all predictors</p></li>
 </ul>
@@ -1049,14 +1050,15 @@ hyperparameters and another one with custom hyperparameters.
 <strong>Hyperparameters</strong> are a set of parameters that define the
 model learning process.</p>
 <ul>
-<li><code>mtry</code>: number of predictors that is randomly samples for
-each split</li>
-<li><code>trees</code>: number of trees in a random forest model</li>
-<li><code>min_n</code>: minimum number of data points in a node that are
-required for it to be split further</li>
+<li><code>mtry</code> (default = sqrt of # variables) : number of
+predictors that is randomly sampled for each split</li>
+<li><code>trees</code> (default = 500) : number of trees in a random
+forest model</li>
+<li><code>min_n</code> (default = 1): minimum number of data points in a
+node that are required for it to be split further</li>
 </ul>
 <pre class="r"><code># initialize the model
-random_forest_model&lt;-rand_forest()%&gt;%
+random_forest_model &lt;- rand_forest()%&gt;%
   set_engine(&quot;ranger&quot;)%&gt;%
   set_mode(&quot;classification&quot;)
 
@@ -1212,8 +1214,7 @@ you to check out guides available online!</p>
 <li><p><a href="https://www.tidymodels.org/start/models/" class="uri">https://www.tidymodels.org/start/models/</a></p></li>
 </ul>
 <p>If you are more interested in using Python, <code>scikit-learn</code>
-is equivalent to <code>tidymodels</code>, which is covered in our (NSIP
-series)[<a href="https://github.com/nuitrcs/NextStepsInPython" class="uri">https://github.com/nuitrcs/NextStepsInPython</a>]</p>
+is equivalent to <code>tidymodels</code>, which is covered in our <a href="https://github.com/nuitrcs/NextStepsInPython">NSIP series</a></p>
 </div>
 <div id="bonus-section-model-tuning-via-grid-search" class="section level1">
 <h1><strong>Bonus Section: Model tuning via grid search</strong></h1>
@@ -1252,7 +1253,7 @@ values.</p>
   min_n(), # convenience function of min_n
   
   # number of values for each parameter we would like to try
-  # below indicates 3 mtry values and 5 min_n values
+  # below indicates 3 mtry values and 3 min_n values
   levels = c(mtry = 3, min_n = 3)
 )
 
@@ -1276,10 +1277,10 @@ the model, and a grid of hyperparameters we would like to test. How do
 we decide which set of hyperparameters is the best? Should we train on
 the training dataset and and choose the hyperparameters that can best
 predict the testing data? That is not a good idea because that will lead
-to what is called [overfitting](What is Overfitting? - Overfitting in
-Machine Learning Explained - AWS (amazon.com). Essentially, the model
-that seems to work well with our data will not generalize well to the
-real world and lead to overly optimistic result.</p>
+to what is called <a href="https://aws.amazon.com/what-is/overfitting/#:~:text=Overfitting%20occurs%20when%20the%20model,to%20several%20reasons%2C%20such%20as%3A&amp;text=The%20training%20data%20size%20is,all%20possible%20input%20data%20values.">overfitting</a>.
+Essentially, the model that seems to work well with our data will not
+generalize well to the real world and lead to overly optimistic
+result.</p>
 <p>A better way to is to do <strong><code>resampling</code></strong>, in
 which we sample from our training set only repeatedly and test our
 hyperparameters - this way, the model is only based on the training set
